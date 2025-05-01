@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Share Percentage</title>
+    <script src="https://cdn.plot.ly/plotly-1.58.5.min.js"></script>
+    <style>
+        /* Smooth Aesthetic Design */
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            margin-top: 50px;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 12px;
+            margin: 8px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            transition: 0.3s ease-in-out;
+            outline: none;
+        }
+        select {
+            background-color: #161b22;
+            color: white;
+            border: 1px solid #30363d;
+        }
+        button {
+            background: #ffcc00;
+            color: black;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 8px;
+        }
+        button:hover {
+            background: #e6b800;
+            transform: scale(1.05);
+        }
+        /* Chart Container */
+        #loadShareContainer {
+            width: 60%;
+            margin: 30px auto;
+            padding: 15px;
+            background: #161b22;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Load Share Percentage</h1>
+
+        <!-- Dropdown to select timestamp -->
+        <select id="timestampDropdown">
+            <option value="">📅 Select a Timestamp</option>
+        </select>
+
+        <button onclick="fetchLoadShare()">📊 Show Load Share</button>
+
+        <!-- Load Share Chart -->
+        <div id="loadShareContainer">
+            <div id="loadShareChart"></div>
+        </div>
+
+        <!-- Button to go back to selection page -->
+        <button onclick="window.location.href='selection.html'">⬅️ Back to Selection</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            loadTimestamps();
+        });
+
+        async function loadTimestamps() {
+            try {
+                let response = await fetch("http://127.0.0.1:5000/get-timestamps");
+                if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+
+                let timestamps = await response.json();
+                let dropdown = document.getElementById("timestampDropdown");
+
+                timestamps.forEach(ts => {
+                    let option = document.createElement("option");
+                    option.value = ts;
+                    option.textContent = ts;
+                    dropdown.appendChild(option);
+                });
+
+            } catch (error) {
+                console.error("Error loading timestamps:", error);
+            }
+        }
+
+        async function fetchLoadShare() {
+            let selectedTimestamp = document.getElementById("timestampDropdown").value;
+            
+            if (!selectedTimestamp) {
+                alert("Please select a timestamp!");
+                return;
+            }
+
+            let url = `http://127.0.0.1:5000/get-load-share?ts=${encodeURIComponent(selectedTimestamp)}`;
+
+            try {
+                let response = await fetch(url);
+                let data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                let labels = Object.keys(data);
+                let values = Object.values(data);
+
+                let layout = {
+                    title: "Load Share % Per Power Source",
+                    paper_bgcolor: "#161b22",
+                    plot_bgcolor: "#161b22",
+                    font: { color: "#e6edf3" }
+                };
+
+                let trace = {
+                    labels: labels,
+                    values: values,
+                    type: "pie",
+                    marker: {
+                        colors: ["#FFD700", "#FFA500", "#DC143C", "#00BFFF"]
+                    }
+                };
+
+                Plotly.newPlot("loadShareChart", [trace], layout);
+
+            } catch (error) {
+                console.error("Error fetching load share:", error);
+                alert("Error loading data.");
+            }
+        }
+    </script>
+</body>
+</html>

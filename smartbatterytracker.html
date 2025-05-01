@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Battery Tracker</title>
+    <script src="https://cdn.plot.ly/plotly-1.58.5.min.js"></script>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            margin-top: 50px;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 8px;
+            background: #ffcc00;
+            color: black;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #e6b800;
+            transform: scale(1.05);
+        }
+        #chartContainer, #resultsContainer {
+            width: 80%;
+            margin: 30px auto;
+            padding: 20px;
+            background: #161b22;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        #chart, #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Battery Tracker</h1>
+        <button id="analyzeButton">📈 Analyze All Data</button>
+
+        <div id="chartContainer">
+            <div id="chart"></div>
+        </div>
+
+        <div id="resultsContainer">
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('analyzeButton').addEventListener('click', async function () {
+            try {
+                const response = await fetch('http://localhost:5000/battery-analysis');
+                console.log("Response Status:", response.status);
+
+                if (!response.ok) {
+                    console.error("Error Response:", await response.text());
+                    alert("An error occurred while fetching data.");
+                    return;
+                }
+
+                const data = await response.json();
+                console.log("Fetched Data:", data);
+
+                renderChart(data);
+                renderResults(data);
+            } catch (error) {
+                console.error("Error:", error);
+                alert("An error occurred while fetching data.");
+            }
+        });
+
+        function renderChart(data) {
+            const timestamps = data.map(item => item.timestamp);
+            const actions = data.map(item => item.action === "Charging" ? 1 : -1);
+
+            const trace = {
+                x: timestamps,
+                y: actions,
+                type: 'bar',
+                marker: { color: actions.map(val => val > 0 ? '#00FF7F' : '#FF4500') },
+                name: 'Action'
+            };
+
+            const layout = {
+                title: 'Battery Charging/Discharging Over Time',
+                xaxis: { title: 'Timestamp' },
+                yaxis: { title: 'Action (1 = Charging, -1 = Discharging)' },
+                plot_bgcolor: '#161b22',
+                paper_bgcolor: '#161b22',
+                font: { color: '#e6edf3' }
+            };
+
+            Plotly.newPlot('chart', [trace], layout);
+        }
+
+        function renderResults(data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            data.forEach(item => {
+                const resultDiv = document.createElement('div');
+                resultDiv.style.marginBottom = "20px";
+
+                resultDiv.innerHTML = `
+                    <p><strong>📅 Timestamp:</strong> ${item.timestamp}</p>
+                    <p><strong>🔋 Action:</strong> ${item.action}</p>
+                    <p><strong>⚡ Source:</strong> ${item.source}</p>
+                    <p><strong>🔎 Contributions:</strong> ${JSON.stringify(item.contributions)}</p>
+                    <p><strong>🔄 Energy Flow:</strong> ${JSON.stringify(item.energy_flow)}</p>
+                    <p><strong>🚫 Load Shedding:</strong> ${item.load_shedding}</p>
+                    <hr style="border: 1px solid #30363d;">
+                `;
+                resultsDiv.appendChild(resultDiv);
+            });
+        }
+    </script>
+</body>
+</html>

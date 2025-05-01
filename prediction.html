@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Shedding Prediction</title>
+    <script src="https://cdn.plot.ly/plotly-1.58.5.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Body Styling */
+        body {
+            background: linear-gradient(to bottom, #1c1c28, #0d0d14);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Container Styling */
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            width: 90%; /* More flexible width */
+            max-width: 1200px; /* Larger max-width for wider screens */
+            margin: 20px auto; /* Add some margin for spacing */
+        }
+
+        /* Chart Styling */
+        #chart, #prediction_chart {
+            width: 100%; /* Full width of the container */
+            height: 400px; /* Fixed height for consistency */
+            margin-bottom: 20px; /* Spacing between charts */
+        }
+
+        /* Error Message Styling */
+        #error-message {
+            color: red;
+            display: none;
+            margin-top: 10px;
+        }
+
+        /* Back Button Styling */
+        #back-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #ffcc00;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        #back-button:hover {
+            background-color: #ffaa00;
+        }
+
+        /* Headings */
+        h1 {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Load Shedding Status Over Time</h1>
+        <div id="chart"></div>
+
+        <h1>Predicted vs Actual Load Shedding for February</h1>
+        <div id="prediction_chart"></div>
+        <p id="error-message"></p>
+
+        <!-- Back Button -->
+        <button id="back-button" onclick="window.history.back();">Back</button>
+    </div>
+
+    <script>
+       $(document).ready(function() {
+    // Fetch Actual Data for Main Graph
+    $.getJSON("http://127.0.0.1:5000/loadshedding")//api enpoint to be get() in json format.
+        .done(function(data) {//if data is recieved
+            if (!data || data.length === 0) {
+                $("#error-message").text("No data received from API.").show();
+                return;
+            }
+
+            let timestamps = data.map(item => item.ts);//map is used to create a new array on. here new array is made on the ts from the data extracted from api.
+            let lsStatus = data.map(item => item.ls_status);
+            let lsPercentage = data.map(item => item.ls_percentage);
+
+            let trace = {//how the data will be visualized.
+                x: timestamps,
+                y: lsStatus,
+                mode: 'lines+markers',
+                name: 'Actual Load Shedding',
+                line: { color: 'red' },
+                text: lsPercentage.map(p => `${p.toFixed(1)}% of the day`),//add hover text.
+                hoverinfo: 'text'
+            };
+
+            let layout = {//gives appearance 
+                title: 'Load Shedding Status Over Time',
+                xaxis: { title: 'Timestamp', type: 'category' },
+                yaxis: { title: 'Load Shedding Status', range: [-0.2, 1.2] },
+                template: 'plotly_dark'
+            };
+
+            Plotly.newPlot('chart', [trace], layout);
+        })
+        .fail(function() {
+            $("#error-message").text("Failed to load data. Please try again.").show();
+        });
+
+    //Fetch Predicted + Actual Data for February
+    $.getJSON("http://127.0.0.1:5000/loadshedding/prediction")
+        .done(function(predictionData) {
+            if (!predictionData || predictionData.length === 0) {
+                $("#error-message").text("No prediction data received from API.").show();
+                return;
+            }
+
+            let timestamps = predictionData.map(item => item.ts);
+            let actualLsStatus = predictionData.map(item => item.ls_status);
+            let predictedLsStatus = predictionData.map(item => item.predicted_ls_status);
+            let actualLsPercentage = predictionData.map(item => item.ls_percentage);
+            let predictedLsPercentage = predictionData.map(item => item.predicted_ls_percentage);//make array of these all attributes after fetching it.
+
+            let actualTrace = {
+                x: timestamps,
+                y: actualLsStatus,
+                mode: 'lines+markers',
+                name: 'Actual Load Shedding (Feb)',
+                line: { color: 'red' },
+                text: actualLsPercentage.map(p => `${p.toFixed(1)}% of the day`),
+                hoverinfo: 'text'
+            };
+
+            let predictedTrace = {
+                x: timestamps,
+                y: predictedLsStatus,
+                mode: 'lines+markers',
+                name: 'Predicted Load Shedding (Feb)',
+                line: { color: 'blue' },
+                text: predictedLsPercentage.map(p => `${p.toFixed(1)}% of the day (Predicted)`),
+                hoverinfo: 'text'
+            };
+
+            let layout = {
+                title: 'Actual vs Predicted Load Shedding for February',
+                xaxis: { title: 'Timestamp', type: 'category' },
+                yaxis: { title: 'Load Shedding Status', range: [-0.2, 1.2] },
+                template: 'plotly_dark'
+            };
+
+            Plotly.newPlot('prediction_chart', [actualTrace, predictedTrace], layout);
+        })
+        .fail(function() {
+            $("#error-message").text("Failed to load prediction data. Please try again.").show();
+        });
+});
+    </script>
+
+</body>
+</html>

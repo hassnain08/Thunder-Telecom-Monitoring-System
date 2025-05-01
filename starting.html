@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thunder Menu</title>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #1c1c28, #0d0d14);
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: background 1s ease-in-out;
+        }
+        img {
+            width: 600px;
+            height: auto;
+            opacity: 0;
+            transform: scale(0.8);
+            animation: fadeIn 1.5s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body onclick="proceed()" onkeypress="proceed()">
+    <img src="logo.svg" alt="Thunder Logo">
+    <script>
+        function proceed() {
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                window.location.href = 'login.html';  
+            }, 500);
+        }
+    </script>
+    
+</body>
+</html>

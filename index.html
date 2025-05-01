@@ -1,0 +1,222 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 (supports all characters/symbols) -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the page responsive on all devices -->
+        <title>Power Source Status</title> <!-- Title displayed in the browser tab -->
+
+        <!-- Include Plotly.js for creating interactive graphs -->
+        <script src="https://cdn.plot.ly/plotly-1.58.5.min.js"></script>
+
+        <!-- Internal CSS for styling the page -->
+        <style>
+            /* Set a dark background and light-colored text for better readability */
+            body {
+                background: linear-gradient(to bottom, #1c1c28, #0d0d14); /* Gradient background */
+                color: white; /* Light text for contrast */
+                font-family: 'Poppins', sans-serif;
+                text-align: center;
+                margin: 20px;
+                min-height: 100vh; 
+            }
+
+
+            /* Center the main content on the page */
+            .container {
+                max-width: 600px;
+                margin: auto;
+                padding: 20px;
+            }
+
+            /* Style the dropdown menu and button */
+            select, button {
+                padding: 12px;
+                margin: 10px;
+                border-radius: 8px;
+                border: none;
+                font-size: 16px;
+                transition: 0.3s ease-in-out;
+                outline: none;
+            }
+
+            /* Dropdown specific styles */
+            select {
+                background-color: #1a1a2e;
+                color: white;
+                border: 1px solid #30363d;
+            }
+
+            /* Style the button with hover effects */
+            button {
+                background: #ffcc00;
+                color: black;
+                cursor: pointer;
+                font-weight: 600;
+                padding: 12px 20px;
+                border-radius: 8px;
+            }
+
+            button:hover {
+                background: #ffaa00;
+                transform: scale(1.05);
+            }
+
+            /* Box that displays status messages */
+            #statusBox {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #30363d; /* Light border */
+            display: none; /* Initially hidden until needed */
+            background-color: #1a1a2e; /* Dark background */
+            color: white; /* White text */
+        }
+
+            /* Class for smoothly showing elements with a fade-in effect */
+            .show {
+                display: block;
+                animation: fadeIn 0.5s ease-in-out;
+            }
+
+            /* Define fade-in animation */
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+
+            /* Style the back button */
+            .back-btn {
+                background-color: #f44336;
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                font-size: 16px;
+                cursor: pointer;
+                border-radius: 8px;
+            }
+
+            .back-btn:hover {
+                background-color: #d32f2f;
+            }
+
+            /* Chart Container */
+            #powerChartContainer {
+                width: 80%;
+                margin: 30px auto;
+                padding: 15px;
+                background: #161b22;
+                border-radius: 12px;
+                box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>Power Source Status ⚡</h1> <!-- Main heading of the page -->
+
+            <!-- Dropdown menu for selecting a timestamp -->
+            <select id="timestampDropdown">
+                <option value="">Select a timestamp</option> <!-- Default option -->
+            </select>
+
+            <!-- Button to fetch data for the selected timestamp -->
+            <button onclick="fetchData()">⚡ Check Status</button>
+
+            <!-- Box to display status messages -->
+            <div id="statusBox">
+                <p id="statusText">Waiting for input...</p>
+            </div>
+
+            <!-- Placeholder for the Plotly graph -->
+            <div id="powerChartContainer"></div>
+
+            <!-- Back button to return to the previous page -->
+            <button class="back-btn" onclick="goBack()">🔙 Back to Selection</button>
+        </div>
+
+        <!-- JavaScript functionality starts here -->
+        <script>
+            // Runs when the page loads
+            document.addEventListener("DOMContentLoaded", function() {
+                loadTimestamps();
+            });
+
+            // Function to fetch available timestamps from the backend
+            async function loadTimestamps() {
+                try {
+                    // Send a request to the backend to get available timestamps
+                    let response = await fetch("http://127.0.0.1:5000/get-timestamps");
+
+                    if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+
+                    let timestamps = await response.json(); // Convert response into JSON format
+                    let dropdown = document.getElementById("timestampDropdown"); // Get dropdown element
+
+                    // Loop through each timestamp received and add it as an option in the dropdown
+                    timestamps.forEach(ts => {
+                        let option = document.createElement("option"); // Create new option element
+                        option.value = ts; // Set option value
+                        option.textContent = ts; // Set the visible text in the dropdown
+                        dropdown.appendChild(option); // Add the option to the dropdown menu
+                    });
+
+                } catch (error) {
+                    console.error("Error loading timestamps:", error);
+                }
+            }
+
+            // Function to fetch power source data when the button is clicked
+            async function fetchData() {
+                let selectedTimestamp = document.getElementById("timestampDropdown").value; // Get the selected timestamp
+
+                // Check if the user selected a valid timestamp
+                if (!selectedTimestamp) {
+                    alert("Please select a timestamp!"); // Alert user if nothing is selected
+                    return;
+                }
+
+                console.log("⏳ Fetching data for:", selectedTimestamp); // Log selected timestamp for debugging
+                clearPreviousData(); // Clears old graph and status messages before loading new data
+
+                let url = `http://127.0.0.1:5000/fetch-chart?ts=${encodeURIComponent(selectedTimestamp)}`; // Construct backend request URL
+
+                try {
+                    let response = await fetch(url); // Send request to backend
+                    if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+
+                    let data = await response.json(); // Convert response to JSON format
+                    if (data.error) {
+                        document.getElementById("statusText").innerText = data.error; // Display error message if data retrieval fails
+                        return;
+                    }
+
+                    console.log("✅ Data received:", data); // Log the received data for debugging
+
+                    // Convert JSON data into Plotly format and display the graph
+                    let graphData = JSON.parse(data.graph);
+                    Plotly.react('powerChartContainer', graphData.data, graphData.layout);
+
+                    // Update the status box with success message
+                    document.getElementById("statusText").innerText = "✅ Graph generated successfully!";
+                    document.getElementById("statusBox").classList.add("show");
+                    document.getElementById("powerChartContainer").classList.add("show");
+
+                } catch (error) {
+                    console.error("Fetch error:", error);
+                    document.getElementById("statusText").innerText = "❌ Error fetching data.";
+                }
+            }
+
+            // Function to clear previous graph and status before loading new data
+            function clearPreviousData() {
+                document.getElementById("statusText").innerText = "Waiting for input..."; // Reset status message
+                Plotly.purge("powerChartContainer"); // Remove previous graph
+            }
+
+            // Function to go back to the previous page
+            function goBack() {
+                window.location.href = "selection.html"; // Redirect user to selection page
+            }
+        </script>
+    </body>
+    </html>

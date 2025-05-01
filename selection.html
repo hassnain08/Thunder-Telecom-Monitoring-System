@@ -1,0 +1,179 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thunder Energy Analytics Platform</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <style>
+            /* General Styles */
+            body {
+                background: linear-gradient(to bottom, #1c1c28, #0d0d14);
+                color: white;
+                font-family: 'Poppins', sans-serif;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+            }
+
+            /* Header */
+            header {
+                background: #1a1a2e;
+                padding: 10px 20px;
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            header .logo {
+                font-size: 24px;
+                font-weight: bold;
+                color: #ffcc00;
+            }
+
+            header .user-info {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            header .user-info span {
+                font-size: 16px;
+            }
+
+            header .user-info i {
+                cursor: pointer;
+            }
+
+            /* Main Content */
+            main {
+                text-align: center;
+                margin-top: 70px; /* Adjust as needed */
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 50px; /* Increased gap between sections */
+            }
+
+            main .hero-section {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+
+            main .hero-section .content {
+                max-width: 500px;
+            }
+
+            main .hero-section .content h1 {
+                font-size: 36px;
+                color: #ffcc00;
+            }
+
+            main .hero-section .content p {
+                font-size: 18px;
+                color: #e0e0e0;
+            }
+
+            /* Quick Links */
+            main .quick-links {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 30px; /* Increased gap between buttons */
+                margin-bottom: 100px; /* Add space below quick links */
+            }
+
+            main .quick-links button {
+                padding: 15px 20px; /* Increased button size */
+                border: none;
+                background: #ffcc00;
+                color: black;
+                border-radius: 5px;
+                cursor: pointer;
+                width: 100%;
+                font-size: 18px; /* Larger font size for buttons */
+                transition: transform 0.3s ease, background 0.3s ease;
+            }
+
+            main .quick-links button:hover {
+                background: #ffaa00;
+                transform: scale(1.05); /* Slight zoom effect on hover */
+            }
+
+            /* Footer */
+            footer {
+                background: #16213e;
+                padding: 10px 20px;
+                text-align: center;
+                color: #e0e0e0;
+                width: 100%;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+            }
+
+            /* Thunder Logo */
+            .thunder-logo {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: center; /* Center the logo horizontally */
+    }
+
+    .thunder-logo img {
+        width: 500px; /* Set the logo width to 350px */
+        height: auto; /* Maintain aspect ratio */
+    }
+        </style>
+    </head>
+    <body>
+
+        <!-- Header -->
+        <header>
+            <div class="logo">Thunder | Home Screen</div>
+            <div class="user-info">
+                <span>Login as: test</span>
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Hero Section -->
+            <section class="hero-section">
+                <div class="thunder-logo">
+                    <img src="logo.svg" alt="Thunder Logo">
+                </div>
+                <div class="content">
+                    <h1>Thunder Energy Analytics Platform</h1>
+                </div>
+            </section>
+
+            <!-- Quick Links -->
+            <section class="quick-links">
+                <button onclick="window.location.href='index.html'"><i class="fa-solid fa-link"></i> Active Power Source per Timestamp</button>
+                <button onclick="window.location.href='prediction.html'"><i class="fa-solid fa-magnifying-glass"></i> Load Shedding Prediction</button>
+                <button onclick="window.location.href='loadpercent.html'"><i class="fa-solid fa-chart-pie"></i> Load Share Percentage per Power Source</button>
+                <button onclick="window.location.href='daily_loadshedding.html'"><i class="fa-solid fa-calendar-days"></i> Daily Load Shedding</button>
+                <button onclick="window.location.href='smartbatterytracker.html'"><i class="fa-solid fa-chart-bar"></i> Smart Battery Tracker</button>
+                <button onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            &copy; 2025 Thunder Energy Analytics Platform. All rights reserved.
+        </footer>
+
+        <script>
+            function logout() {
+                window.location.href = "login.html";
+            }
+        </script>
+    </body>
+    </html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load Shedding Chart</title>
+    <script src="https://cdn.plot.ly/plotly-1.58.5.min.js"></script>
+    <style>
+        /* Modern Color Palette */
+        :root {
+            --bg-color: #1a1a2e;
+            --container-bg: #16213e;
+            --text-color: #e0e0e0;
+            --primary-btn: #ff6f61;
+            --secondary-btn: #3b82f6;
+            --hover-primary-btn: #ff4d40;
+            --hover-secondary-btn: #2563eb;
+            --chart-line: #ff6f61;
+            --chart-bar: #3b82f6;
+        }
+
+        /* Smooth Aesthetic Design */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            margin-top: 50px;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 8px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            outline: none;
+        }
+        button.primary {
+            background: linear-gradient(135deg, var(--primary-btn), var(--hover-primary-btn));
+            color: white;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        button.primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3);
+        }
+        button.secondary {
+            background: linear-gradient(135deg, var(--secondary-btn), var(--hover-secondary-btn));
+            color: white;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        button.secondary:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3);
+        }
+        /* Chart Container */
+        #chart {
+            width: 90%;
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+            background: var(--container-bg);
+            border-radius: 16px;
+            box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        /* Loading Spinner */
+        #loading {
+            font-size: 18px;
+            margin-top: 20px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+            button {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+            #chart {
+                width: 100%;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>⚡ Daily Load Shedding Analysis</h1>
+        <button class="primary" onclick="plotDailyLoadShedding()" aria-label="Plot Data">📊 Plot Data</button>
+
+        <div id="chart"></div>
+        <div id="loading">Loading data...</div>
+
+        <button class="secondary" onclick="goBack()" aria-label="Go Back">⬅️ Go Back</button>
+    </div>
+
+    <script>
+        async function plotDailyLoadShedding() {
+            // Show loading state
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('chart').innerHTML = '';
+
+            try {
+                const response = await fetch('http://localhost:5000/daily-load-shedding');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    alert("No data available to plot.");
+                    return;
+                }
+
+                // Extract data for plotting
+                const dates = data.map(item => item.ts);
+                const percentages = data.map(item => item.ls_percentage);
+                const hours = data.map(item => item.ls_hours);
+
+                // Trace for Load Shedding Percentage
+                const percentageTrace = {
+                    x: dates,
+                    y: percentages,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    marker: { 
+                        color: '#ff6f61', 
+                        size: 8, 
+                        line: { color: 'white', width: 1 } 
+                    },
+                    line: { 
+                        shape: 'spline', 
+                        color: '#ff6f61', 
+                        width: 2 
+                    },
+                    name: 'Load Shedding (%)',
+                    yaxis: 'y1' // Primary y-axis
+                };
+
+                // Trace for Load Shedding Hours
+                const hoursTrace = {
+                    x: dates,
+                    y: hours,
+                    type: 'bar',
+                    marker: { 
+                        color: '#3b82f6', 
+                        opacity: 0.8 
+                    },
+                    name: 'Load Shedding (Hours)',
+                    yaxis: 'y2' // Secondary y-axis
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Daily Load Shedding Analysis',
+                        font: { size: 24, color: '#e0e0e0' }
+                    },
+                    xaxis: { 
+                        title: 'Date', 
+                        tickfont: { size: 12 }, 
+                        gridcolor: 'rgba(255, 255, 255, 0.1)' 
+                    },
+                    yaxis: {
+                        title: 'Load Shedding (%)',
+                        range: [0, 100],
+                        side: 'left',
+                        showgrid: true,
+                        gridcolor: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    yaxis2: {
+                        title: 'Load Shedding (Hours)',
+                        overlaying: 'y',
+                        side: 'right',
+                        showgrid: false,
+                        range: [0, Math.max(...hours) + 2], // Dynamic range based on max hours
+                        tickfont: { color: '#3b82f6' }
+                    },
+                    plot_bgcolor: 'transparent',
+                    paper_bgcolor: 'transparent',
+                    font: { color: '#e0e0e0' },
+                    legend: { 
+                        orientation: 'h', 
+                        y: -0.2, 
+                        font: { size: 14 } 
+                    },
+                    margin: { l: 50, r: 50, t: 80, b: 50 }
+                };
+
+                Plotly.newPlot('chart', [percentageTrace, hoursTrace], layout);
+            } catch (err) {
+                console.error("Error fetching or plotting data:", err);
+                alert("Failed to load chart data. Please try again later.");
+            } finally {
+                // Hide loading state
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+
+</body>
+</html>
