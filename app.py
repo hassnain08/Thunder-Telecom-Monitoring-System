@@ -9,12 +9,14 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX#time-series forcasting mo
 #from sklearn.preprocessing import StandardScaler
 import numpy as np#numerical operations.
 from flask_caching import Cache
+import socket
+from datetime import datetime
+
 
 
 #here i initilized a flask application and then allowed the app to accept requests from domains (frontend-backend)
 app = Flask(__name__)
 CORS(app)
-
 
 #configuring my database with python
 DB_CONFIG = {
@@ -29,7 +31,7 @@ DB_CONFIG = {
 #returning the db connection and setting the query result returned as dictionaries rather than tuples.
 def get_db_connection():
         return pymysql.connect(**DB_CONFIG, cursorclass=pymysql.cursors.DictCursor)
-
+#getting dictionary results instead of just using the default tuple results, easier to pass data to frontend apps or convert to JSON later.
 
 
 #funciton for fetching the ps data for a specific ts.
@@ -49,30 +51,45 @@ def fetch_power_data(timestamp):
 
 
 #---------------------------------------------------LOGIN---------------------------------------------------
-@app.route('/login', methods=['POST'])#api endpoint for post requests.
+@app.route('/login', methods=['POST'])
 def login():
-        '''
-        this function fetches the username and password of the user from the db when the user tries to enter it in the web app.
-        '''
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
+    '''
+    This function fetches the username and password from the database when the user tries to log in to the web app.
+    Logs the failed login attempt to the database if the login fails.
+    '''
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    
+    # Get the client's IP address for logging
+    ip_address = request.remote_addr  # Get IP address from the request
 
-        try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-            cursor.execute("SELECT id FROM user WHERE username = %s AND password = %s", (username, password))
-            user = cursor.fetchone()
+        cursor.execute("SELECT id FROM user WHERE username = %s AND password = %s", (username, password))
+        user = cursor.fetchone()
+
+        if user:
+            # Login success
+            conn.close()
+            return jsonify({"success": True, "message": "Login successful", "user_id": user["id"]})
+
+        else:
+            # Log the failed login attempt in the database
+            cursor.execute(
+                "INSERT INTO login_attempts (username, success) VALUES (%s, %s)",
+                (username, False)
+            )
+            conn.commit()
             conn.close()
 
-            if user:
-                return jsonify({"success": True, "message": "Login successful", "user_id": user["id"]})
             return jsonify({"success": False, "message": "Invalid credentials"}), 401
 
-        except pymysql.MySQLError as e:
-            print("Database Error:", e)
-            return jsonify({"success": False, "message": "Database error"}), 500
+    except pymysql.MySQLError as e:
+        print("Database Error:", e)
+        return jsonify({"success": False, "message": "Database error"}), 500
 
 
 #---------------------------------------------------GET LOAD SHARE(total power)-------------------------------------------------------
@@ -83,6 +100,8 @@ def get_load_share():
         and then out of all those extracted ps data it shows out of 100% how much each ps is used at a ts
         '''
         timestamp = request.args.get('ts')#get the ts from the url request.
+        #so when the url is called it gives a ts with it so .get is used to retrieve that ts from the url so the ts can be used to plot
+        #its like : http://localhost:5000/get-load-share?ts=2025-01-01%2012:00:00, and the .get is used to extract the ts from the url.
 
         if not timestamp:
             return jsonify({"error": "Missing timestamp"}), 400
@@ -98,7 +117,7 @@ def get_load_share():
         if not result:
             return jsonify({"error": "No data found for the selected timestamp"}), 404
 
-        mainkw, solarkw, dgkw, batterykw = result.values()
+        mainkw, solarkw, dgkw, batterykw = result.values()#extract those values from the dictionary result.
         total_power = mainkw + solarkw + dgkw + batterykw#calculating total power.
 
         if total_power == 0:#if total power 0 then give error for that ts
@@ -139,20 +158,28 @@ def sarima_model_training():
     """
     Trains a SARIMA model on load shedding data and generates predictions for February 2025.
     """
-    # Fetch and preprocess data
+    #fetch and preprocess data of ls
     df = fetch_loadshedding_data()
     df.set_index('ts', inplace=True)
 
-    # Resample to daily level using mean to smooth fluctuations
+    #for the missing values, we use fillna() and use mean values to smooth fluctuations.
     df = df.resample('D').mean().fillna(0)
-    df['ls_percentage'] = df['ls_status'] * 100  # Convert to percentage
 
-    # Actual data for February 2025
+    df['ls_percentage'] = df['ls_status'] * 100 #converting to percentage
+
+    #actual data for February 2025
     feb_actual = df.loc["2025-02-01":"2025-02-18"].reset_index()
 
     # Define SARIMA parameters
-    order = (2, 1, 2)  # (p, d, q)
-    seasonal_order = (1, 1, 1, 7)  # (P, D, Q, S)
+    order = (2, 1, 2)  # (p, d, q): 
+                   # p = AR (AutoRegressive) term order -> number of lagged observations
+                   # d = degree of differencing -> number of times the data have been differenced to achieve stationarity
+                   # q = MA (Moving Average)
+    seasonal_order = (1, 1, 1, 7)  # (P, D, Q, S):
+                               # P = seasonal AR term order, 
+                               # D = seasonal differencing order, 
+                               # Q = seasonal MA term order, 
+                               # S = seasonal periodicity (7 for weekly seasonality).
 
     # Train SARIMA model
     model = SARIMAX(df['ls_status'], order=order, seasonal_order=seasonal_order)
@@ -304,21 +331,21 @@ def get_daily_load_shedding():
         # Fetch and preprocess data
         df = fetch_loadshedding_data()
         df['ts'] = pd.to_datetime(df['ts'])
-        df['date'] = df['ts'].dt.date
+        df['date'] = df['ts'].dt.date#total 288 instances. Extracts only the date part 
 
-        # Total entries per day
+        #total entries per day
         total_per_day = df.groupby('date').size().reset_index(name='total')
-
         # LS entries per day
         ls_per_day = df[df['ls_status'] == 1].groupby('date').size().reset_index(name='ls_count')
 
-        # Merge and calculate percentage
+        #merge and calculate percentage
         merged = pd.merge(total_per_day, ls_per_day, on='date', how='left')
         merged['ls_count'] = merged['ls_count'].fillna(0)
         merged['ls_percentage'] = round((merged['ls_count'] / merged['total']) * 100, 2)
 
-        # Calculate total hours of load shedding
-        interval_minutes = 5  # Assuming each entry corresponds to a 5-minute interval
+        #calculate total hours of load shedding
+        interval_minutes = 5 
+        #each entry corresponds to a 5-minute interval
         merged['ls_hours'] = round((merged['ls_count'] * interval_minutes) / 60, 2)
 
         # Return results as JSON

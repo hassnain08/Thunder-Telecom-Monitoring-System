@@ -55,6 +55,11 @@
 <body>
     <div class="container">
         <h1>Smart Battery Tracker</h1>
+
+        <!-- Back Button -->
+        <button id="backButton" onclick="goBack()">⬅️ Go Back</button>
+
+        <!-- Analyze Button -->
         <button id="analyzeButton">📈 Analyze All Data</button>
 
         <div id="chartContainer">
@@ -67,6 +72,11 @@
     </div>
 
     <script>
+        // Function to go back to the previous page
+        function goBack() {
+            window.history.back();
+        }
+
         document.getElementById('analyzeButton').addEventListener('click', async function () {
             try {
                 const response = await fetch('http://localhost:5000/battery-analysis');

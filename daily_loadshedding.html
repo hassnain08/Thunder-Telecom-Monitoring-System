@@ -170,7 +170,8 @@
                         width: 2 
                     },
                     name: 'Load Shedding (%)',
-                    yaxis: 'y1' // Primary y-axis
+                    yaxis: 'y1', // Primary y-axis
+                    hovertemplate: 'Date: %{x}<br>Percentage: %{y}%<extra></extra>'
                 };
 
                 // Trace for Load Shedding Hours
@@ -183,7 +184,8 @@
                         opacity: 0.8 
                     },
                     name: 'Load Shedding (Hours)',
-                    yaxis: 'y2' // Secondary y-axis
+                    yaxis: 'y2', // Secondary y-axis
+                    hovertemplate: 'Date: %{x}<br>Hours: %{y}<extra></extra>'
                 };
 
                 const layout = {
@@ -194,14 +196,17 @@
                     xaxis: { 
                         title: 'Date', 
                         tickfont: { size: 12 }, 
-                        gridcolor: 'rgba(255, 255, 255, 0.1)' 
+                        gridcolor: 'rgba(255, 255, 255, 0.1)', 
+                        showgrid: true 
                     },
                     yaxis: {
                         title: 'Load Shedding (%)',
                         range: [0, 100],
                         side: 'left',
                         showgrid: true,
-                        gridcolor: 'rgba(255, 255, 255, 0.1)'
+                        gridcolor: 'rgba(255, 255, 255, 0.1)',
+                        zeroline: false,
+                        tickfont: { color: '#ff6f61' }
                     },
                     yaxis2: {
                         title: 'Load Shedding (Hours)',
@@ -219,7 +224,10 @@
                         y: -0.2, 
                         font: { size: 14 } 
                     },
-                    margin: { l: 50, r: 50, t: 80, b: 50 }
+                    margin: { l: 50, r: 50, t: 80, b: 50 },
+                    hovermode: 'closest', // Enhance hover interaction
+                    dragmode: 'pan', // Enable panning
+                    responsive: true // Ensure responsiveness
                 };
 
                 Plotly.newPlot('chart', [percentageTrace, hoursTrace], layout);
